@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Software House UNIVAG - Apontamento Diário</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 550px; }
+        h2 { color: #1e293b; margin-bottom: 8px; font-size: 1.4rem; }
+        p.subtitle { color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: 600; color: #334155; margin-bottom: 6px; font-size: 0.9rem; }
+        input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border-color 0.2s; }
+        input:focus, textarea:focus { border-color: #2563eb; }
+        textarea { resize: vertical; min-height: 90px; }
+        button { width: 100%; background-color: #2563eb; color: #ffffff; border: none; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #1d4ed8; }
+        .status-msg { margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 0.9rem; text-align: center; display: none; }
+        .status-success { background-color: #dcfce7; color: #166534; }
+        .status-error { background-color: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Software House - Registro Diário</h2>
+    <p class="subtitle">Envie suas atividades diárias para a consolidação do relatório de estágio.</p>
+
+    <form id="dailyForm">
+        <div class="form-group">
+            <label for="membro">Membro do Time</label>
+            <input type="text" id="membro" placeholder="Digite seu nome completo..." required>
+        </div>
+
+        <div class="form-group">
+            <label for="projeto">Projeto / Frente Principal</label>
+            <input type="text" id="projeto" placeholder="Ex: Clubbix, Marketing, CAE..." required>
+        </div>
+
+        <div class="form-group">
+            <label for="atividades">O que você fez hoje?</label>
+            <textarea id="atividades" placeholder="Ex: Ajustes nos diagramas de caso de uso e reunião com o cliente..." required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="dificuldades">Dificuldades ou Impedimentos (Opcional)</label>
+            <textarea id="dificuldades" placeholder="Ex: Ausência de storage/CDN dedicado..."></textarea>
+        </div>
+
+        <button type="submit" id="btnSubmit">Enviar Apontamento</button>
+        <div id="statusMsg" class="status-msg"></div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('dailyForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const btnSubmit = document.getElementById('btnSubmit');
+        const statusMsg = document.getElementById('statusMsg');
+        
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Enviando...";
+        statusMsg.style.display = "none";
+
+        const payload = {
+            membro: document.getElementById('membro').value.trim(),
+            projeto: document.getElementById('projeto').value.trim(),
+            atividades: document.getElementById('atividades').value.trim(),
+            dificuldades: document.getElementById('dificuldades').value.trim(),
+            data: new Date().toISOString().split('T')[0]
+        };
+
+        try {
+            const response = await fetch('/api/apontamentos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                statusMsg.className = "status-msg status-success";
+                statusMsg.innerText = "Apontamento registrado com sucesso!";
+                statusMsg.style.display = "block";
+                this.reset();
+            } else {
+                throw new Error("Erro ao registrar o apontamento.");
+            }
+        } catch (error) {
+            statusMsg.className = "status-msg status-error";
+            statusMsg.innerText = "Erro ao conectar com o servidor. Tente novamente.";
+            statusMsg.style.display = "block";
+        } finally {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Enviar Apontamento";
+        }
+    });
+</script>
+
+</body>
+</html>
