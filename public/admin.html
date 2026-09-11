@@ -1,8 +1,3 @@
-Este é o painel de consolidação diária completo.
-
-Assim como fizemos no formulário, a requisição foi ajustada no script para apontar diretamente para `http://localhost:3000`, evitando erros de conexão ou CORS ao carregar os relatos ou gerar o PDF.
-
-```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -99,7 +94,6 @@ Assim como fizemos no formulário, a requisição foi ajustada no script para ap
         container.innerHTML = "<p>Carregando relatos...</p>";
 
         try {
-            // Requisição com a URL completa apontando para a porta 3000
             const response = await fetch(`http://localhost:3000/api/apontamentos?data=${dataSelecionada}`);
             relatosAtuais = await response.json();
             renderizarRelatos(relatosAtuais);
@@ -167,7 +161,6 @@ Assim como fizemos no formulário, a requisição foi ajustada no script para ap
         alertDrive.style.display = "none";
 
         try {
-            // Requisição com a URL completa apontando para a porta 3000
             const response = await fetch('http://localhost:3000/api/relatorio/gerar-e-enviar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -189,11 +182,10 @@ Assim como fizemos no formulário, a requisição foi ajustada no script para ap
             alert("Erro na conexão com o servidor ao gerar o PDF.");
         } finally {
             btnGerar.disabled = false;
-            btnGerar.innerText = "Gerar PDF e Enviar para o Google Drive";
+            btnGerar.innerText = "Gerando PDF e Enviar para o Google Drive";
         }
     }
 
-    // Carrega os dados na abertura inicial da página
     carregarRelatos();
 </script>
 
