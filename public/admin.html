@@ -1,3 +1,8 @@
+Este é o painel de consolidação diária completo.
+
+Assim como fizemos no formulário, a requisição foi ajustada no script para apontar diretamente para `http://localhost:3000`, evitando erros de conexão ou CORS ao carregar os relatos ou gerar o PDF.
+
+```html
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -84,6 +89,7 @@
 </div>
 
 <script>
+    // Define a data atual como padrão no campo de filtro
     document.getElementById('filtroData').value = new Date().toISOString().split('T')[0];
     let relatosAtuais = [];
 
@@ -93,7 +99,8 @@
         container.innerHTML = "<p>Carregando relatos...</p>";
 
         try {
-            const response = await fetch(`/api/apontamentos?data=${dataSelecionada}`);
+            // Requisição com a URL completa apontando para a porta 3000
+            const response = await fetch(`http://localhost:3000/api/apontamentos?data=${dataSelecionada}`);
             relatosAtuais = await response.json();
             renderizarRelatos(relatosAtuais);
         } catch (error) {
@@ -160,7 +167,8 @@
         alertDrive.style.display = "none";
 
         try {
-            const response = await fetch('/api/relatorio/gerar-e-enviar', {
+            // Requisição com a URL completa apontando para a porta 3000
+            const response = await fetch('http://localhost:3000/api/relatorio/gerar-e-enviar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -185,6 +193,7 @@
         }
     }
 
+    // Carrega os dados na abertura inicial da página
     carregarRelatos();
 </script>
 

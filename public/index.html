@@ -74,7 +74,8 @@
         };
 
         try {
-            const response = await fetch('/api/apontamentos', {
+            // URL configurada diretamente para o servidor local na porta 3000
+            const response = await fetch('http://localhost:3000/api/apontamentos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

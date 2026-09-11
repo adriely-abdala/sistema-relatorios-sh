@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
@@ -8,17 +9,17 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
+app.use(cors()); // Habilita requisições do frontend
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'))); // Serve index.html e admin.html
 
-// Banco de dados em memória (substituir por MariaDB/PostgreSQL em produção)
+// Banco de dados em memória
 let bancoApontamentos = [];
 
 // ==========================================
 // CONFIGURAÇÃO GOOGLE DRIVE API
 // ==========================================
-// Salve o arquivo de chave da Service Account do Google Cloud como 'google-credentials.json'
-const KEY_FILE_PATH = path.join(__dirname, 'google-credentials.json');
+const KEY_FILE_PATH = path.join(__dirname, 'temp', 'google-credentials.json');
 const PASTA_DRIVE_ID = 'SEU_ID_DA_PASTA_NO_GOOGLE_DRIVE'; // ID da pasta de relatórios
 
 const auth = new google.auth.GoogleAuth({
@@ -177,7 +178,6 @@ function gerarHtmlRelatorio(data, relatos) {
                 <tr><th style="width: 25%;">Data</th><td>${data}</td></tr>
                 <tr><th>Frente(s)</th><td>${frentes}</td></tr>
                 <tr><th>Instituição</th><td>Centro Universitário de Várzea Grande - UNIVAG</td></tr>
-                <tr><th>Professor responsável</th><td>Lázaro Manoel da Silva Filho</td></tr>
             </table>
 
             <h2>1. Atividades do Dia</h2>
