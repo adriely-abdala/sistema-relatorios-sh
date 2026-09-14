@@ -1,12 +1,22 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env.example') });
+
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const { google } = require('googleapis');
+const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ==========================================
+// CONFIGURAÇÃO IA (correção de texto) — Google Gemini (tier gratuito)
+// ==========================================
+// A chave NUNCA deve ficar no código — fica no arquivo .env.example (ver instruções).
+// Gere a chave em: https://aistudio.google.com/apikey (não precisa de cartão de crédito)
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Middlewares
 app.use(cors()); // Habilita requisições do frontend
@@ -59,6 +69,37 @@ app.get('/api/apontamentos', (req, res) => {
     const dataFiltro = req.query.data || new Date().toISOString().split('T')[0];
     const filtrados = bancoApontamentos.filter(item => item.data === dataFiltro);
     return res.json(filtrados);
+});
+
+// 2.5. Corrigir texto com IA (index.html) — ortografia/gramática, sem mudar o sentido
+app.post('/api/corrigir-texto', async (req, res) => {
+    try {
+        const { texto } = req.body;
+
+        if (!texto || !texto.trim()) {
+            return res.status(400).json({ erro: 'Nenhum texto fornecido.' });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({ erro: 'IA não configurada no servidor (GEMINI_API_KEY ausente).' });
+        }
+
+        const resposta = await genAI.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: texto,
+            config: {
+                systemInstruction: 'Você corrige ortografia, gramática e pontuação de relatos de trabalho em português do Brasil, escritos por estagiários de forma informal/rápida. Regras: (1) NÃO mude o sentido, remova informação ou adicione conteúdo que não está lá; (2) mantenha o tom simples e direto do autor, só limpe erros; (3) não transforme em texto formal/corporativo demais; (4) responda APENAS com o texto corrigido, sem aspas, sem comentários, sem explicações.'
+            }
+        });
+
+        const textoCorrigido = (resposta.text || '').trim();
+
+        return res.json({ sucesso: true, corrigido: textoCorrigido });
+
+    } catch (erro) {
+        console.error('[ERRO] Falha na correção via IA:', erro);
+        return res.status(500).json({ erro: 'Falha ao corrigir texto com IA.' });
+    }
 });
 
 // 3. Gerar PDF e Enviar para o Google Drive (admin.html)
@@ -129,15 +170,27 @@ app.post('/api/relatorio/gerar-e-enviar', async (req, res) => {
 // ==========================================
 // TEMPLATE HTML DO PDF
 // ==========================================
+
+// Evita injeção de HTML no PDF gerado (dados vêm de texto livre dos membros)
+function escapeHtml(texto) {
+    if (texto === null || texto === undefined) return '';
+    return String(texto)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function gerarHtmlRelatorio(data, relatos) {
-    const frentes = [...new Set(relatos.map(r => r.projeto))].join(', ');
+    const frentes = [...new Set(relatos.map(r => escapeHtml(r.projeto)))].join(', ');
     
     let htmlAtividades = '';
     relatos.forEach(r => {
         htmlAtividades += `
             <div style="margin-bottom: 15px;">
-                <strong>${r.membro} — ${r.projeto}</strong>
-                <p style="margin: 5px 0 0 0; white-space: pre-line;">${r.atividades}</p>
+                <strong>${escapeHtml(r.membro)} — ${escapeHtml(r.projeto)}</strong>
+                <p style="margin: 5px 0 0 0; white-space: pre-line;">${escapeHtml(r.atividades)}</p>
             </div>
         `;
     });
@@ -148,8 +201,8 @@ function gerarHtmlRelatorio(data, relatos) {
         comImpedimento.forEach((r, idx) => {
             htmlImpedimentos += `
                 <tr>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px;">D${idx + 1} - ${r.membro} (${r.projeto})</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 8px;">${r.dificuldades}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 8px;">D${idx + 1} - ${escapeHtml(r.membro)} (${escapeHtml(r.projeto)})</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 8px;">${escapeHtml(r.dificuldades)}</td>
                 </tr>
             `;
         });
