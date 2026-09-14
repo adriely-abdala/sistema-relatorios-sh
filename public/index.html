@@ -20,6 +20,12 @@
         .status-msg { margin-top: 15px; padding: 10px; border-radius: 6px; font-size: 0.9rem; text-align: center; display: none; }
         .status-success { background-color: #dcfce7; color: #166534; }
         .status-error { background-color: #fee2e2; color: #991b1b; }
+        .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .field-header label { margin-bottom: 0; }
+        .btn-ia { background: none; border: 1px solid #2563eb; color: #2563eb; width: auto; padding: 3px 10px; font-size: 0.78rem; font-weight: 600; border-radius: 20px; cursor: pointer; }
+        .btn-ia:hover { background: #eff6ff; }
+        .btn-ia:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ia-hint { font-size: 0.78rem; color: #64748b; margin-top: 4px; display: none; }
     </style>
 </head>
 <body>
@@ -40,13 +46,21 @@
         </div>
 
         <div class="form-group">
-            <label for="atividades">O que você fez hoje?</label>
+            <div class="field-header">
+                <label for="atividades">O que você fez hoje?</label>
+                <button type="button" class="btn-ia" data-target="atividades" onclick="corrigirComIA(this)">✨ Corrigir com IA</button>
+            </div>
             <textarea id="atividades" placeholder="Ex: Ajustes nos diagramas de caso de uso e reunião com o cliente..." required></textarea>
+            <div class="ia-hint" id="hint-atividades">Texto corrigido pela IA. Revise antes de enviar.</div>
         </div>
 
         <div class="form-group">
-            <label for="dificuldades">Dificuldades ou Impedimentos (Opcional)</label>
+            <div class="field-header">
+                <label for="dificuldades">Dificuldades ou Impedimentos (Opcional)</label>
+                <button type="button" class="btn-ia" data-target="dificuldades" onclick="corrigirComIA(this)">✨ Corrigir com IA</button>
+            </div>
             <textarea id="dificuldades" placeholder="Ex: Ausência de storage/CDN dedicado..."></textarea>
+            <div class="ia-hint" id="hint-dificuldades">Texto corrigido pela IA. Revise antes de enviar.</div>
         </div>
 
         <button type="submit" id="btnSubmit">Enviar Apontamento</button>
@@ -55,6 +69,41 @@
 </div>
 
 <script>
+    async function corrigirComIA(botao) {
+        const targetId = botao.dataset.target;
+        const textarea = document.getElementById(targetId);
+        const hint = document.getElementById('hint-' + targetId);
+        const textoOriginal = textarea.value.trim();
+
+        if (!textoOriginal) return;
+
+        const textoBtnOriginal = botao.innerText;
+        botao.disabled = true;
+        botao.innerText = "Corrigindo...";
+
+        try {
+            const response = await fetch('/api/corrigir-texto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ texto: textoOriginal })
+            });
+
+            const resultado = await response.json();
+
+            if (response.ok && resultado.sucesso) {
+                textarea.value = resultado.corrigido;
+                hint.style.display = "block";
+            } else {
+                alert(resultado.erro || "Não foi possível corrigir o texto agora.");
+            }
+        } catch (error) {
+            alert("Erro ao conectar com o serviço de correção.");
+        } finally {
+            botao.disabled = false;
+            botao.innerText = textoBtnOriginal;
+        }
+    }
+
     document.getElementById('dailyForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -74,8 +123,7 @@
         };
 
         try {
-            // URL configurada diretamente para o servidor local na porta 3000
-            const response = await fetch('http://localhost:3000/api/apontamentos', {
+            const response = await fetch('/api/apontamentos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
