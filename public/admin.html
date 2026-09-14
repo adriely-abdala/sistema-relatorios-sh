@@ -88,13 +88,20 @@
     document.getElementById('filtroData').value = new Date().toISOString().split('T')[0];
     let relatosAtuais = [];
 
+    // Evita XSS: escapa qualquer HTML/script digitado pelos membros do time
+    function escapeHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto ?? '';
+        return div.innerHTML;
+    }
+
     async function carregarRelatos() {
         const dataSelecionada = document.getElementById('filtroData').value;
         const container = document.getElementById('listaRelatos');
         container.innerHTML = "<p>Carregando relatos...</p>";
 
         try {
-            const response = await fetch(`http://localhost:3000/api/apontamentos?data=${dataSelecionada}`);
+            const response = await fetch(`/api/apontamentos?data=${dataSelecionada}`);
             relatosAtuais = await response.json();
             renderizarRelatos(relatosAtuais);
         } catch (error) {
@@ -128,17 +135,17 @@
             card.className = 'entry-card';
             card.innerHTML = `
                 <div class="entry-header">
-                    <span class="membro-nome">${item.membro}</span>
-                    <span class="badge-projeto">${item.projeto}</span>
+                    <span class="membro-nome">${escapeHtml(item.membro)}</span>
+                    <span class="badge-projeto">${escapeHtml(item.projeto)}</span>
                 </div>
                 <div class="entry-body">
                     <h4>ATIVIDADES REALIZADAS:</h4>
-                    <p>${item.atividades}</p>
+                    <p>${escapeHtml(item.atividades)}</p>
                 </div>
                 ${item.dificuldades ? `
                     <div class="dificuldade-block">
                         <h4>IMPEDIMENTO / DIFICULDADE:</h4>
-                        <p>${item.dificuldades}</p>
+                        <p>${escapeHtml(item.dificuldades)}</p>
                     </div>
                 ` : ''}
             `;
@@ -161,7 +168,7 @@
         alertDrive.style.display = "none";
 
         try {
-            const response = await fetch('http://localhost:3000/api/relatorio/gerar-e-enviar', {
+            const response = await fetch('/api/relatorio/gerar-e-enviar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
